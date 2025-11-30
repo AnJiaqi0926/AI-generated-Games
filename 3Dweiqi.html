@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三维围棋 - 增强版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #header {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        #header h1 {
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        #header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        #content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        #game-container {
+            flex: 3;
+            position: relative;
+        }
+        #ui-panel {
+            flex: 1;
+            max-width: 350px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        #game-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .control-group {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        h2 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        .btn {
+            padding: 10px 15px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #357ae8;
+            transform: translateY(-2px);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn-danger {
+            background: #e74c3c;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        .btn-success {
+            background: #2ecc71;
+        }
+        .btn-success:hover {
+            background: #27ae60;
+        }
+        #status {
+            font-size: 1.2rem;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        #coordinates {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        .slider-container {
+            margin: 10px 0;
+        }
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .rules {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .rules h3 {
+            margin: 10px 0 5px 0;
+            color: #4a90e2;
+        }
+        .rules ul {
+            padding-left: 20px;
+        }
+        .rules li {
+            margin-bottom: 5px;
+        }
+        #current-player {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .player-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .black {
+            background: #000;
+            border: 1px solid #fff;
+        }
+        .white {
+            background: #fff;
+            border: 1px solid #000;
+        }
+        #captured-stones {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+        }
+        .capture-count {
+            display: flex;
+            align-items: center;
+        }
+        #instructions {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        .coordinate-input {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .coordinate-input input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+        }
+        .coordinate-input input:focus {
+            outline: none;
+            border-color: #4a90e2;
+        }
+        .placement-mode {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mode-btn.active {
+            background: #4a90e2;
+            border-color: #4a90e2;
+        }
+        .layer-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        .layer-controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .layer-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .layer-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .board-size-control {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .board-size-control input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+        }
+        .key-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .key-btn {
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        .key-btn.active {
+            background: #4a90e2;
+            border-color: #4a90e2;
+        }
+        @media (max-width: 768px) {
+            #content {
+                flex-direction: column;
+            }
+            #ui-panel {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <h1>三维围棋 - 增强版</h1>
+            <p>支持棋盘拖动、落子预览和可调整棋盘大小的三维围棋</p>
+        </div>
+        <div id="content">
+            <div id="game-container">
+                <div id="canvas-container"></div>
+            </div>
+            <div id="ui-panel">
+                <div id="game-info">
+                    <h2>游戏状态</h2>
+                    <div id="status">黑方先行</div>
+                    <div id="current-player">
+                        <div class="player-indicator black"></div>
+                        <span>当前玩家: 黑方</span>
+                    </div>
+                    <div class="layer-info">
+                        <span>当前层: <span id="layer-value">9</span></span>
+                        <span>落子模式: <span id="mode-value">当前层</span></span>
+                    </div>
+                    <div id="coordinates">预览位置: (9, 9, 9)</div>
+                    <div id="captured-stones">
+                        <div class="capture-count">
+                            <div class="player-indicator black"></div>
+                            <span>提子: 0</span>
+                        </div>
+                        <div class="capture-count">
+                            <div class="player-indicator white"></div>
+                            <span>提子: 0</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="controls">
+                    <div class="control-group">
+                        <h2>棋盘设置</h2>
+                        <div class="board-size-control">
+                            <input type="number" id="board-size-input" min="1" max="21" value="19">
+                            <button id="set-board-size" class="btn">设置棋盘大小</button>
+                        </div>
+                        <div style="font-size: 0.9rem; color: #ccc; margin-top: 5px;">
+                            棋盘大小: 1x1x1 到 21x21x21
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h2>落子方式</h2>
+                        <div class="placement-mode">
+                            <button id="mode-coord" class="mode-btn">坐标输入</button>
+                            <button id="mode-layer" class="mode-btn active">当前层</button>
+                        </div>
+                        
+                        <div id="coord-input" class="coordinate-input" style="display: none;">
+                            <input type="number" id="x-input" min="0" max="18" placeholder="X" value="9">
+                            <input type="number" id="y-input" min="0" max="18" placeholder="Y" value="9">
+                            <input type="number" id="z-input" min="0" max="18" placeholder="Z" value="9">
+                            <button id="place-btn" class="btn">落子</button>
+                        </div>
+                        
+                        <div id="layer-input">
+                            <div class="coordinate-input">
+                                <input type="number" id="layer-x-input" min="0" max="18" placeholder="X" value="9">
+                                <input type="number" id="layer-z-input" min="0" max="18" placeholder="Z" value="9">
+                                <button id="layer-place-btn" class="btn">在当前层落子</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h2>位置微调</h2>
+                        <div class="key-controls">
+                            <div class="key-btn" id="key-up">↑ Y+</div>
+                            <div class="key-btn" id="key-down">↓ Y-</div>
+                            <div class="key-btn" id="key-layer-up">层+</div>
+                            <div class="key-btn" id="key-left">← X-</div>
+                            <div class="key-btn" id="key-center">确认</div>
+                            <div class="key-btn" id="key-right">→ X+</div>
+                            <div class="key-btn" id="key-front">前 Z+</div>
+                            <div class="key-btn" id="key-back">后 Z-</div>
+                            <div class="key-btn" id="key-layer-down">层-</div>
+                        </div>
+                        <div style="font-size: 0.9rem; color: #ccc; margin-top: 5px;">
+                            点击按钮或使用键盘方向键微调位置
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h2>层控制</h2>
+                        <div class="slider-container">
+                            <label for="layer-slider">层数: <span id="layer-display">9</span></label>
+                            <input type="range" id="layer-slider" min="0" max="18" value="9">
+                        </div>
+                        <div class="layer-controls">
+                            <button id="prev-layer" class="layer-btn">上一层</button>
+                            <button id="next-layer" class="layer-btn">下一层</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h2>游戏控制</h2>
+                        <button id="new-game" class="btn btn-success">新游戏</button>
+                        <button id="pass-turn" class="btn">跳过回合</button>
+                        <button id="resign" class="btn btn-danger">认输</button>
+                        <button id="reset-view" class="btn">重置视角</button>
+                        <button id="toggle-drag" class="btn">拖动模式: 关闭</button>
+                    </div>
+                    
+                    <div class="rules">
+                        <h2>三维围棋规则</h2>
+                        <h3>基本规则</h3>
+                        <ul>
+                            <li>棋盘为NxNxN的三维网格</li>
+                            <li>黑白双方交替落子</li>
+                            <li>棋子有6个相邻位置（上下左右前后）</li>
+                        </ul>
+                        <h3>气与提子</h3>
+                        <ul>
+                            <li>当一块棋的所有相邻位置被对方占据，则被提掉</li>
+                            <li>不能自杀（除非能提掉对方棋子）</li>
+                            <li>禁止全局同形再现</li>
+                        </ul>
+                        <h3>胜利条件</h3>
+                        <ul>
+                            <li>终局时，领地+棋子数多者胜</li>
+                        </ul>
+                    </div>
+                    <div id="instructions">
+                        <p>操作说明：</p>
+                        <p>• 鼠标拖拽：旋转视角</p>
+                        <p>• 鼠标滚轮：缩放</p>
+                        <p>• 中键拖拽：平移棋盘</p>
+                        <p>• 使用坐标输入或当前层模式落子</p>
+                        <p>• 方向键微调落子位置</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script>
+        // 游戏主类
+        class ThreeDGo {
+            constructor() {
+                this.boardSize = 19;
+                this.currentLayer = Math.floor(this.boardSize / 2);
+                this.currentPlayer = 1; // 1: 黑, 2: 白
+                this.placementMode = 'layer'; // 'coord' 或 'layer'
+                this.dragEnabled = false;
+                this.previewPosition = {
+                    x: Math.floor(this.boardSize / 2),
+                    y: Math.floor(this.boardSize / 2),
+                    z: Math.floor(this.boardSize / 2)
+                };
+                
+                this.initThreeJS();
+                this.createBoard();
+                this.setupEventListeners();
+                this.updateUI();
+                this.updatePreview();
+            }
+            
+            // 创建空棋盘
+            createEmptyBoard() {
+                const board = [];
+                for (let x = 0; x < this.boardSize; x++) {
+                    board[x] = [];
+                    for (let y = 0; y < this.boardSize; y++) {
+                        board[x][y] = [];
+                        for (let z = 0; z < this.boardSize; z++) {
+                            board[x][y][z] = 0;
+                        }
+                    }
+                }
+                return board;
+            }
+            
+            // 初始化Three.js场景
+            initThreeJS() {
+                // 场景
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x1a1a2e);
+                
+                // 相机
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(20, 15, 20);
+                
+                // 渲染器
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth * 0.75, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                document.getElementById('canvas-container').appendChild(this.renderer.domElement);
+                
+                // 控制器
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                
+                // 光源
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 20, 15);
+                directionalLight.castShadow = true;
+                this.scene.add(directionalLight);
+                
+                // 辅助网格和坐标轴
+                const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+                this.scene.add(gridHelper);
+                
+                const axesHelper = new THREE.AxesHelper(5);
+                this.scene.add(axesHelper);
+                
+                // 渲染循环
+                this.animate();
+                
+                // 窗口大小调整
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+            
+            // 创建棋盘
+            createBoard() {
+                // 清除现有棋盘
+                if (this.boardGroup) {
+                    this.scene.remove(this.boardGroup);
+                }
+                if (this.stoneGroup) {
+                    this.scene.remove(this.stoneGroup);
+                }
+                if (this.layerIndicator) {
+                    this.scene.remove(this.layerIndicator);
+                }
+                if (this.previewStone) {
+                    this.scene.remove(this.previewStone);
+                }
+                
+                this.boardGroup = new THREE.Group();
+                this.stoneGroup = new THREE.Group();
+                this.scene.add(this.boardGroup);
+                this.scene.add(this.stoneGroup);
+                
+                // 创建棋盘线
+                const lineMaterial = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
+                const offset = (this.boardSize - 1) / 2;
+                
+                // X方向线
+                for (let x = 0; x < this.boardSize; x++) {
+                    for (let z = 0; z < this.boardSize; z++) {
+                        const points = [];
+                        points.push(new THREE.Vector3(x - offset, 0, z - offset));
+                        points.push(new THREE.Vector3(x - offset, this.boardSize - 1, z - offset));
+                        
+                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                        const line = new THREE.Line(geometry, lineMaterial);
+                        this.boardGroup.add(line);
+                    }
+                }
+                
+                // Y方向线
+                for (let y = 0; y < this.boardSize; y++) {
+                    for (let z = 0; z < this.boardSize; z++) {
+                        const points = [];
+                        points.push(new THREE.Vector3(-offset, y, z - offset));
+                        points.push(new THREE.Vector3(offset, y, z - offset));
+                        
+                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                        const line = new THREE.Line(geometry, lineMaterial);
+                        this.boardGroup.add(line);
+                    }
+                }
+                
+                // Z方向线
+                for (let x = 0; x < this.boardSize; x++) {
+                    for (let y = 0; y < this.boardSize; y++) {
+                        const points = [];
+                        points.push(new THREE.Vector3(x - offset, y, -offset));
+                        points.push(new THREE.Vector3(x - offset, y, offset));
+                        
+                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                        const line = new THREE.Line(geometry, lineMaterial);
+                        this.boardGroup.add(line);
+                    }
+                }
+                
+                // 创建交叉点标记
+                const dotGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const dotMaterial = new THREE.MeshBasicMaterial({ color: 0x888888 });
+                
+                for (let x = 0; x < this.boardSize; x++) {
+                    for (let y = 0; y < this.boardSize; y++) {
+                        for (let z = 0; z < this.boardSize; z++) {
+                            // 只在特定位置放置标记点，避免过于密集
+                            if ((x % 6 === 0 && y % 6 === 0 && z % 6 === 0) || 
+                                (x === offset && y === offset && z === offset)) {
+                                const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+                                dot.position.set(x - offset, y, z - offset);
+                                this.boardGroup.add(dot);
+                            }
+                        }
+                    }
+                }
+                
+                // 创建当前层指示器
+                this.layerIndicator = new THREE.Group();
+                this.updateLayerIndicator();
+                this.scene.add(this.layerIndicator);
+                
+                // 创建预览棋子
+                const previewGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+                const previewMaterial = new THREE.MeshStandardMaterial({ 
+                    color: this.currentPlayer === 1 ? 0x000000 : 0xffffff,
+                    roughness: 0.7,
+                    metalness: 0.1,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                
+                this.previewStone = new THREE.Mesh(previewGeometry, previewMaterial);
+                this.updatePreviewPosition();
+                this.scene.add(this.previewStone);
+                
+                // 初始化棋盘状态
+                this.board = this.createEmptyBoard();
+                this.capturedStones = {1: 0, 2: 0};
+                this.gameActive = true;
+            }
+            
+            // 更新当前层指示器
+            updateLayerIndicator() {
+                // 清除现有指示器
+                while(this.layerIndicator.children.length > 0) { 
+                    this.layerIndicator.remove(this.layerIndicator.children[0]); 
+                }
+                
+                const offset = (this.boardSize - 1) / 2;
+                
+                // 创建当前层的平面
+                const planeGeometry = new THREE.PlaneGeometry(this.boardSize, this.boardSize);
+                const planeMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x00ff00, 
+                    transparent: true, 
+                    opacity: 0.1,
+                    side: THREE.DoubleSide
+                });
+                const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+                plane.rotation.x = Math.PI / 2;
+                plane.position.y = this.currentLayer;
+                this.layerIndicator.add(plane);
+                
+                // 更新UI
+                document.getElementById('layer-value').textContent = this.currentLayer;
+                document.getElementById('layer-display').textContent = this.currentLayer;
+                
+                // 更新滑块
+                document.getElementById('layer-slider').max = this.boardSize - 1;
+                document.getElementById('layer-slider').value = this.currentLayer;
+            }
+            
+            // 更新预览位置
+            updatePreviewPosition() {
+                const offset = (this.boardSize - 1) / 2;
+                this.previewStone.position.set(
+                    this.previewPosition.x - offset,
+                    this.previewPosition.y,
+                    this.previewPosition.z - offset
+                );
+                
+                // 更新预览棋子颜色
+                this.previewStone.material.color.set(
+                    this.currentPlayer === 1 ? 0x000000 : 0xffffff
+                );
+                
+                // 更新坐标显示
+                document.getElementById('coordinates').textContent = 
+                    `预览位置: (${this.previewPosition.x}, ${this.previewPosition.y}, ${this.previewPosition.z})`;
+                
+                // 更新输入框
+                document.getElementById('x-input').value = this.previewPosition.x;
+                document.getElementById('y-input').value = this.previewPosition.y;
+                document.getElementById('z-input').value = this.previewPosition.z;
+                document.getElementById('layer-x-input').value = this.previewPosition.x;
+                document.getElementById('layer-z-input').value = this.previewPosition.z;
+            }
+            
+            // 放置棋子
+            placeStone(x, y, z) {
+                if (!this.gameActive) return false;
+                
+                // 检查位置是否有效
+                if (x < 0 || x >= this.boardSize || y < 0 || y >= this.boardSize || z < 0 || z >= this.boardSize) {
+                    alert('坐标超出范围！有效范围：0-' + (this.boardSize - 1));
+                    return false;
+                }
+                
+                // 检查位置是否已有棋子
+                if (this.board[x][y][z] !== 0) {
+                    alert('该位置已有棋子！');
+                    return false;
+                }
+                
+                // 临时放置棋子
+                this.board[x][y][z] = this.currentPlayer;
+                
+                // 检查是否为自杀（没有气）
+                if (!this.hasLiberties(x, y, z)) {
+                    // 检查是否可以提掉对方棋子
+                    let canCapture = false;
+                    const neighbors = this.getNeighbors(x, y, z);
+                    
+                    for (const neighbor of neighbors) {
+                        if (this.board[neighbor.x][neighbor.y][neighbor.z] === 3 - this.currentPlayer) {
+                            if (!this.hasLiberties(neighbor.x, neighbor.y, neighbor.z)) {
+                                canCapture = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 如果不能提子，则不允许自杀
+                    if (!canCapture) {
+                        this.board[x][y][z] = 0;
+                        alert('无效落子：自杀！');
+                        return false;
+                    }
+                }
+                
+                // 提掉对方无气的棋子
+                this.captureStones(x, y, z);
+                
+                // 渲染棋子
+                this.renderStone(x, y, z);
+                
+                // 切换玩家
+                this.currentPlayer = 3 - this.currentPlayer;
+                this.updateUI();
+                this.updatePreview();
+                
+                return true;
+            }
+            
+            // 获取相邻位置
+            getNeighbors(x, y, z) {
+                const neighbors = [];
+                const directions = [
+                    {dx: 1, dy: 0, dz: 0}, {dx: -1, dy: 0, dz: 0},
+                    {dx: 0, dy: 1, dz: 0}, {dx: 0, dy: -1, dz: 0},
+                    {dx: 0, dy: 0, dz: 1}, {dx: 0, dy: 0, dz: -1}
+                ];
+                
+                for (const dir of directions) {
+                    const nx = x + dir.dx;
+                    const ny = y + dir.dy;
+                    const nz = z + dir.dz;
+                    
+                    if (nx >= 0 && nx < this.boardSize && 
+                        ny >= 0 && ny < this.boardSize && 
+                        nz >= 0 && nz < this.boardSize) {
+                        neighbors.push({x: nx, y: ny, z: nz});
+                    }
+                }
+                
+                return neighbors;
+            }
+            
+            // 检查棋子是否有气
+            hasLiberties(x, y, z, visited = new Set()) {
+                const key = `${x},${y},${z}`;
+                if (visited.has(key)) return false;
+                visited.add(key);
+                
+                const color = this.board[x][y][z];
+                const neighbors = this.getNeighbors(x, y, z);
+                
+                for (const neighbor of neighbors) {
+                    const neighborColor = this.board[neighbor.x][neighbor.y][neighbor.z];
+                    
+                    if (neighborColor === 0) {
+                        return true; // 有空位，有气
+                    }
+                    
+                    if (neighborColor === color) {
+                        if (this.hasLiberties(neighbor.x, neighbor.y, neighbor.z, visited)) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 提掉无气的棋子
+            captureStones(x, y, z) {
+                const opponent = 3 - this.currentPlayer;
+                const neighbors = this.getNeighbors(x, y, z);
+                
+                for (const neighbor of neighbors) {
+                    if (this.board[neighbor.x][neighbor.y][neighbor.z] === opponent) {
+                        if (!this.hasLiberties(neighbor.x, neighbor.y, neighbor.z)) {
+                            this.removeGroup(neighbor.x, neighbor.y, neighbor.z);
+                        }
+                    }
+                }
+            }
+            
+            // 移除一组棋子
+            removeGroup(x, y, z) {
+                const color = this.board[x][y][z];
+                if (color === 0) return;
+                
+                const visited = new Set();
+                const queue = [{x, y, z}];
+                let count = 0;
+                
+                while (queue.length > 0) {
+                    const stone = queue.shift();
+                    const key = `${stone.x},${stone.y},${stone.z}`;
+                    
+                    if (visited.has(key)) continue;
+                    visited.add(key);
+                    
+                    if (this.board[stone.x][stone.y][stone.z] === color) {
+                        this.board[stone.x][stone.y][stone.z] = 0;
+                        count++;
+                        
+                        // 移除3D模型
+                        this.removeStoneModel(stone.x, stone.y, stone.z);
+                        
+                        // 添加相邻同色棋子
+                        const neighbors = this.getNeighbors(stone.x, stone.y, stone.z);
+                        for (const neighbor of neighbors) {
+                            if (this.board[neighbor.x][neighbor.y][neighbor.z] === color) {
+                                queue.push(neighbor);
+                            }
+                        }
+                    }
+                }
+                
+                // 更新提子计数
+                this.capturedStones[this.currentPlayer] += count;
+                this.updateUI();
+            }
+            
+            // 渲染棋子
+            renderStone(x, y, z) {
+                const color = this.board[x][y][z];
+                if (color === 0) return;
+                
+                // 移除可能已存在的棋子模型
+                this.removeStoneModel(x, y, z);
+                
+                const offset = (this.boardSize - 1) / 2;
+                
+                // 创建棋子
+                const geometry = new THREE.SphereGeometry(0.4, 16, 16);
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: color === 1 ? 0x000000 : 0xffffff,
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+                
+                const stone = new THREE.Mesh(geometry, material);
+                stone.position.set(x - offset, y, z - offset);
+                stone.userData = {x, y, z};
+                this.stoneGroup.add(stone);
+            }
+            
+            // 移除棋子模型
+            removeStoneModel(x, y, z) {
+                for (let i = this.stoneGroup.children.length - 1; i >= 0; i--) {
+                    const stone = this.stoneGroup.children[i];
+                    if (stone.userData.x === x && stone.userData.y === y && stone.userData.z === z) {
+                        this.stoneGroup.remove(stone);
+                        break;
+                    }
+                }
+            }
+            
+            // 坐标输入落子
+            placeByCoordinates() {
+                const x = parseInt(document.getElementById('x-input').value);
+                const y = parseInt(document.getElementById('y-input').value);
+                const z = parseInt(document.getElementById('z-input').value);
+                
+                if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                    alert('请输入有效的坐标值！');
+                    return;
+                }
+                
+                if (this.placeStone(x, y, z)) {
+                    // 更新预览位置
+                    this.previewPosition = {x, y, z};
+                    this.updatePreviewPosition();
+                }
+            }
+            
+            // 当前层落子
+            placeOnCurrentLayer() {
+                const x = parseInt(document.getElementById('layer-x-input').value);
+                const z = parseInt(document.getElementById('layer-z-input').value);
+                const y = this.currentLayer;
+                
+                if (isNaN(x) || isNaN(z)) {
+                    alert('请输入有效的坐标值！');
+                    return;
+                }
+                
+                if (this.placeStone(x, y, z)) {
+                    // 更新预览位置
+                    this.previewPosition = {x, y, z};
+                    this.updatePreviewPosition();
+                }
+            }
+            
+            // 切换落子模式
+            setPlacementMode(mode) {
+                this.placementMode = mode;
+                
+                // 更新UI
+                const coordInput = document.getElementById('coord-input');
+                const layerInput = document.getElementById('layer-input');
+                const modeValue = document.getElementById('mode-value');
+                
+                if (mode === 'coord') {
+                    coordInput.style.display = 'flex';
+                    layerInput.style.display = 'none';
+                    modeValue.textContent = '坐标输入';
+                    
+                    // 更新按钮状态
+                    document.getElementById('mode-coord').classList.add('active');
+                    document.getElementById('mode-layer').classList.remove('active');
+                } else {
+                    coordInput.style.display = 'none';
+                    layerInput.style.display = 'block';
+                    modeValue.textContent = '当前层';
+                    
+                    // 更新按钮状态
+                    document.getElementById('mode-coord').classList.remove('active');
+                    document.getElementById('mode-layer').classList.add('active');
+                }
+            }
+            
+            // 更新预览
+            updatePreview() {
+                this.updatePreviewPosition();
+            }
+            
+            // 微调预览位置
+            adjustPreview(dx, dy, dz) {
+                this.previewPosition.x = Math.max(0, Math.min(this.boardSize - 1, this.previewPosition.x + dx));
+                this.previewPosition.y = Math.max(0, Math.min(this.boardSize - 1, this.previewPosition.y + dy));
+                this.previewPosition.z = Math.max(0, Math.min(this.boardSize - 1, this.previewPosition.z + dz));
+                
+                this.updatePreview();
+            }
+            
+            // 设置棋盘大小
+            setBoardSize(size) {
+                if (size < 1 || size > 21) {
+                    alert('棋盘大小必须在1到21之间！');
+                    return;
+                }
+                
+                this.boardSize = size;
+                this.currentLayer = Math.floor(this.boardSize / 2);
+                
+                // 重置预览位置到中心
+                this.previewPosition = {
+                    x: Math.floor(this.boardSize / 2),
+                    y: Math.floor(this.boardSize / 2),
+                    z: Math.floor(this.boardSize / 2)
+                };
+                
+                this.createBoard();
+                this.updateUI();
+                this.updatePreview();
+            }
+            
+            // 切换拖动模式
+            toggleDragMode() {
+                this.dragEnabled = !this.dragEnabled;
+                this.controls.enablePan = this.dragEnabled;
+                document.getElementById('toggle-drag').textContent = 
+                    `拖动模式: ${this.dragEnabled ? '开启' : '关闭'}`;
+            }
+            
+            // 更新UI
+            updateUI() {
+                // 更新当前玩家显示
+                const playerIndicator = document.querySelector('#current-player .player-indicator');
+                const playerText = document.querySelector('#current-player span');
+                
+                if (this.currentPlayer === 1) {
+                    playerIndicator.className = 'player-indicator black';
+                    playerText.textContent = '当前玩家: 黑方';
+                } else {
+                    playerIndicator.className = 'player-indicator white';
+                    playerText.textContent = '当前玩家: 白方';
+                }
+                
+                // 更新提子计数
+                document.querySelectorAll('.capture-count')[0].querySelector('span').textContent = 
+                    `提子: ${this.capturedStones[1]}`;
+                document.querySelectorAll('.capture-count')[1].querySelector('span').textContent = 
+                    `提子: ${this.capturedStones[2]}`;
+                
+                // 更新游戏状态
+                const statusElement = document.getElementById('status');
+                if (this.gameActive) {
+                    statusElement.textContent = '游戏进行中';
+                    statusElement.style.color = '#2ecc71';
+                } else {
+                    statusElement.textContent = '游戏结束';
+                    statusElement.style.color = '#e74c3c';
+                }
+                
+                // 更新输入框范围
+                const maxCoord = this.boardSize - 1;
+                document.getElementById('x-input').max = maxCoord;
+                document.getElementById('y-input').max = maxCoord;
+                document.getElementById('z-input').max = maxCoord;
+                document.getElementById('layer-x-input').max = maxCoord;
+                document.getElementById('layer-z-input').max = maxCoord;
+            }
+            
+            // 新游戏
+            newGame() {
+                this.board = this.createEmptyBoard();
+                this.currentPlayer = 1;
+                this.capturedStones = {1: 0, 2: 0};
+                this.gameActive = true;
+                
+                // 清除所有棋子模型
+                while(this.stoneGroup.children.length > 0) { 
+                    this.stoneGroup.remove(this.stoneGroup.children[0]); 
+                }
+                
+                this.updateUI();
+                this.updatePreview();
+            }
+            
+            // 跳过回合
+            passTurn() {
+                if (!this.gameActive) return;
+                
+                this.currentPlayer = 3 - this.currentPlayer;
+                this.updateUI();
+                this.updatePreview();
+            }
+            
+            // 认输
+            resign() {
+                if (!this.gameActive) return;
+                
+                this.gameActive = false;
+                const winner = this.currentPlayer === 1 ? '白方' : '黑方';
+                document.getElementById('status').textContent = `${winner}获胜！`;
+                this.updateUI();
+            }
+            
+            // 重置视角
+            resetView() {
+                this.camera.position.set(20, 15, 20);
+                this.controls.reset();
+            }
+            
+            // 设置事件监听器
+            setupEventListeners() {
+                // 落子按钮
+                document.getElementById('place-btn').addEventListener('click', () => this.placeByCoordinates());
+                document.getElementById('layer-place-btn').addEventListener('click', () => this.placeOnCurrentLayer());
+                
+                // 落子模式切换
+                document.getElementById('mode-coord').addEventListener('click', () => this.setPlacementMode('coord'));
+                document.getElementById('mode-layer').addEventListener('click', () => this.setPlacementMode('layer'));
+                
+                // 层控制
+                const layerSlider = document.getElementById('layer-slider');
+                layerSlider.addEventListener('input', (e) => {
+                    this.currentLayer = parseInt(e.target.value);
+                    this.updateLayerIndicator();
+                    this.previewPosition.y = this.currentLayer;
+                    this.updatePreview();
+                });
+                
+                document.getElementById('prev-layer').addEventListener('click', () => {
+                    if (this.currentLayer > 0) {
+                        this.currentLayer--;
+                        document.getElementById('layer-slider').value = this.currentLayer;
+                        this.updateLayerIndicator();
+                        this.previewPosition.y = this.currentLayer;
+                        this.updatePreview();
+                    }
+                });
+                
+                document.getElementById('next-layer').addEventListener('click', () => {
+                    if (this.currentLayer < this.boardSize - 1) {
+                        this.currentLayer++;
+                        document.getElementById('layer-slider').value = this.currentLayer;
+                        this.updateLayerIndicator();
+                        this.previewPosition.y = this.currentLayer;
+                        this.updatePreview();
+                    }
+                });
+                
+                // 棋盘大小设置
+                document.getElementById('set-board-size').addEventListener('click', () => {
+                    const size = parseInt(document.getElementById('board-size-input').value);
+                    this.setBoardSize(size);
+                });
+                
+                // 微调按钮
+                document.getElementById('key-up').addEventListener('click', () => this.adjustPreview(0, 1, 0));
+                document.getElementById('key-down').addEventListener('click', () => this.adjustPreview(0, -1, 0));
+                document.getElementById('key-left').addEventListener('click', () => this.adjustPreview(-1, 0, 0));
+                document.getElementById('key-right').addEventListener('click', () => this.adjustPreview(1, 0, 0));
+                document.getElementById('key-front').addEventListener('click', () => this.adjustPreview(0, 0, 1));
+                document.getElementById('key-back').addEventListener('click', () => this.adjustPreview(0, 0, -1));
+                document.getElementById('key-layer-up').addEventListener('click', () => {
+                    if (this.currentLayer < this.boardSize - 1) {
+                        this.currentLayer++;
+                        document.getElementById('layer-slider').value = this.currentLayer;
+                        this.updateLayerIndicator();
+                        this.previewPosition.y = this.currentLayer;
+                        this.updatePreview();
+                    }
+                });
+                document.getElementById('key-layer-down').addEventListener('click', () => {
+                    if (this.currentLayer > 0) {
+                        this.currentLayer--;
+                        document.getElementById('layer-slider').value = this.currentLayer;
+                        this.updateLayerIndicator();
+                        this.previewPosition.y = this.currentLayer;
+                        this.updatePreview();
+                    }
+                });
+                document.getElementById('key-center').addEventListener('click', () => {
+                    if (this.placementMode === 'coord') {
+                        this.placeByCoordinates();
+                    } else {
+                        this.placeOnCurrentLayer();
+                    }
+                });
+                
+                // 键盘控制
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            this.adjustPreview(0, 1, 0);
+                            break;
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            this.adjustPreview(0, -1, 0);
+                            break;
+                        case 'ArrowLeft':
+                            e.preventDefault();
+                            this.adjustPreview(-1, 0, 0);
+                            break;
+                        case 'ArrowRight':
+                            e.preventDefault();
+                            this.adjustPreview(1, 0, 0);
+                            break;
+                        case 'PageUp':
+                            e.preventDefault();
+                            this.adjustPreview(0, 0, 1);
+                            break;
+                        case 'PageDown':
+                            e.preventDefault();
+                            this.adjustPreview(0, 0, -1);
+                            break;
+                        case 'Enter':
+                            e.preventDefault();
+                            if (this.placementMode === 'coord') {
+                                this.placeByCoordinates();
+                            } else {
+                                this.placeOnCurrentLayer();
+                            }
+                            break;
+                    }
+                });
+                
+                // UI控制
+                document.getElementById('new-game').addEventListener('click', () => this.newGame());
+                document.getElementById('pass-turn').addEventListener('click', () => this.passTurn());
+                document.getElementById('resign').addEventListener('click', () => this.resign());
+                document.getElementById('reset-view').addEventListener('click', () => this.resetView());
+                document.getElementById('toggle-drag').addEventListener('click', () => this.toggleDragMode());
+                
+                // 输入框回车事件
+                document.getElementById('x-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.placeByCoordinates();
+                });
+                document.getElementById('y-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.placeByCoordinates();
+                });
+                document.getElementById('z-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.placeByCoordinates();
+                });
+                document.getElementById('layer-x-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.placeOnCurrentLayer();
+                });
+                document.getElementById('layer-z-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.placeOnCurrentLayer();
+                });
+                document.getElementById('board-size-input').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const size = parseInt(document.getElementById('board-size-input').value);
+                        this.setBoardSize(size);
+                    }
+                });
+            }
+            
+            // 窗口大小调整
+            onWindowResize() {
+                this.camera.aspect = (window.innerWidth * 0.75) / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth * 0.75, window.innerHeight);
+            }
+            
+            // 动画循环
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                this.controls.update();
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+        
+        // 初始化游戏
+        window.addEventListener('DOMContentLoaded', () => {
+            const game = new ThreeDGo();
+        });
+    </script>
+</body>
+</html>
